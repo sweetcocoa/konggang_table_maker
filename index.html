@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta property="og:title" content="2017년 2학기 공강 시간표 생성기">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="http://ukulpi.iptime.org/index.html">
+    <meta property="og:description" content="ALKUL member timetable">
+    <meta property="og:image" content="http://ukulpi.iptime.org/kakao_image2.jpg">
+	
+    <!-- 上述3个meta标签*必须*放在最前面，任何其他内容都*必须*跟随其后！ -->
+    <title>공강시간표 생성기</title>
+
+    <!-- Bootstrap -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="//cdn.bootcss.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="//cdn.bootcss.com/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <style>
+        html {
+            overflow-x: hidden;
+        }
+        
+        .table label:before {
+            display: inline;
+            content: "공강";
+        }
+        
+        .table label.active:before {
+            display: inline;
+            content: "수업";
+        }
+    </style>
+
+</head>
+
+<body>
+    <nav class="navbar navbar-default">
+        <div class="container-fluid">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="#">공강 시간표 생성기</a>
+            </div>
+
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <form class="navbar-form navbar-left" id="form">
+                    <div class="form-group">
+                        <input type="mobile" class="form-control" name="id" id="stuid" placeholder="학번 (안겹치는 아무거나" >
+                        <input type="text" class="form-control" id="name" name="name" placeholder="이름">
+                        <input type="text" class="form-control" name="event" placeholder="事件" value="2017_1" style="display:none">
+                    </div>
+                    <button id="load" type="button" class="btn btn-default">로드</button>
+                    <button type="submit" class="btn btn-primary">제출</button>
+                    <button type="view" class="btn btn-default" onclick="location.href='view.html'">결과 보기</button>
+                </form>
+            <!--    <p class="navbar-text navbar-right">By: <a class="navbar-link" href="http://xuhongxu.cn">xuhongxu.cn</a></p>-->
+            </div>
+
+
+        </div>
+        <!-- /.navbar-collapse -->
+        </div>
+        <!-- /.container-fluid -->
+    </nav>
+
+    <div class="container">
+        <form id="tableForm">
+            <div class="table-responsive">
+                <table class="text-center table table-bordered table-hover" id="table">
+                    <tr>
+                        <th>#</th>
+                        <th>월</th>
+                        <th>화</th>
+                        <th>수</th>
+                        <th>목</th>
+                        <th>금</th>
+                        <th>토</th>
+                        <th>일</th>
+                    </tr>
+                </table>
+            </div>
+        </form>
+    </div>
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="js/jquery.min.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="js/bootstrap.min.js">
+    </script>
+    <script>
+        $(document).ready(function() {
+            
+	    var table = $("#table");
+            for (var i = 1; i <= 24; ++i) {
+                var e = $("<tr><td>" +(Math.floor((i-1)/2)+8) +":"+ ((i+1)%2)*30 + " ~ " + (Math.floor(i/2)+8) + ":"+ (i%2)*30 + "<br>"+(Math.floor((i-1)/2))+"."+((i+1)%2)*5 +"교시"+ "</td></tr>");
+                for (var j = 1; j <= 7; ++j) {
+                    e.append($("<td><div data-toggle='buttons'><label class='btn btn-primary btn-block'><input id='t" + i + "_" + j + "' name='time[]' value='" + i + "," + j + "' type='checkbox'></label></div></td>"));
+                }
+                e.appendTo(table);
+            }
+            $("#form").submit(function(e) {
+
+		e.preventDefault();
+
+                $.ajax({
+                        method: "POST",
+                        url: "deal.php",
+                        data: $(this).serialize() + "&" + $("#tableForm").serialize()
+                    })
+                    .done(function(msg) {
+                        alert(msg);;
+                    });
+            });
+            $("input[type=\"checkbox\"").change(function() {
+                if (this.checked) {
+                    $(this).parent("label").removeClass("btn-primary");
+                    $(this).parent("label").addClass("btn-danger");
+                } else {
+                    $(this).parent("label").addClass("btn-primary");
+                    $(this).parent("label").removeClass("btn-danger");
+                }
+            });
+            $("#load").click(function() {
+             
+		$.ajax({
+                        method: "POST",
+                        url: "load.php",
+                        dataType: "json",
+                        data: $("#form").serialize()
+                    })
+                    .done(function(t) {
+                        $("input:checkbox").prop("checked", false);
+                        $("input:checkbox").parent("label").removeClass("active").addClass("btn-primary").removeClass("btn-danger");
+                        if (t.error) {
+                            alert(t.error);
+                            return;
+                        }
+                        for (var index in t) {
+                            var time = t[index];
+                            $("#t" + time.item + "_" + time.day).prop("checked", true);
+                            $("#t" + time.item + "_" + time.day).parent("label").addClass("active").removeClass("btn-primary").addClass("btn-danger");
+                        }
+                    });
+            });
+        });
+    </script>
+</body>
+
+</html>
